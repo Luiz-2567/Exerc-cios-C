@@ -86,7 +86,7 @@ TIM* TIM_lineToTIM(char *s){
 	novo->centPrecT = stringToInt(num);
 	j = 0;
 	i++;
-	while(s[i] != ','){//preco total
+	while((s[i] != ',') && (s[i] != '.')){//preco m2
 		num[j] = s[i];
 		i++;
 		j++;
@@ -121,7 +121,7 @@ TIM* TIM_lineToTIM(char *s){
 	novo->cep = stringToInt(num);
 	j = 0;
 	i++;
-	while(s[i] != ','){//latitude
+	while((s[i] != ',') && (s[i] != '.')){//latitude
 		num[j] = s[i];
 		i++;
 		j++;
@@ -139,7 +139,7 @@ TIM* TIM_lineToTIM(char *s){
 	novo->decLat = stringToInt(num);
 	j = 0;
 	i++;
-	while(s[i] != ','){//longitude
+	while((s[i] != ',') && (s[i] != '.')){//longitude
 		num[j] = s[i];			
 		i++;
 		j++;
@@ -188,10 +188,10 @@ int TIM_salva(TIM* imovel, FILE* fp){
     fwrite(&imovel->id, sizeof(long int), 1, fp);
     fwrite(&imovel->cep, sizeof(int), 1, fp);
     fwrite(&imovel->num, sizeof(int), 1, fp);
-    fwrite(imovel->bairro, sizeof(char) * MAX_TAM_BAIRRO, 1, fp);
-    fwrite(imovel->desc, sizeof(char) * MAX_TAM_DESC, 1, fp);
-    fwrite(imovel->tipo, sizeof(char) * MAX_TAM_INFO, 1, fp);
-    fwrite(imovel->rua, sizeof(char) * MAX_TAM_RUA, 1, fp);
+    fwrite(imovel->bairro, sizeof(char), MAX_TAM_BAIRRO, fp);
+    fwrite(imovel->desc, sizeof(char), MAX_TAM_DESC, fp);
+    fwrite(imovel->tipo, sizeof(char),  MAX_TAM_INFO, fp);
+    fwrite(imovel->rua, sizeof(char), MAX_TAM_RUA, fp);
     fwrite(&imovel->lat, sizeof(int), 1, fp);
     fwrite(&imovel->decLat, sizeof(int), 1, fp);
     fwrite(&imovel->lon, sizeof(int), 1, fp);

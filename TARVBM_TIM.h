@@ -13,13 +13,14 @@ typedef struct arvbm{
 TARVBM* TARVBM_cria();
 TARVBM* TARVBM_aloca(int t);
 TARVBM* TARVBM_libera_no(TARVBM *a, int t);
+void TARVBM_gera_arvore(int t);
 TIM* TARVBM_busca_id(char* raiz, long int idAlvo, int t);
 int TARVBM_insere(TIM *imo, int t);
 int TARVBM_insere0(char *raiz, int t, TIM *imo);
 TARVBM* TARVBM_insereNCompleto(TARVBM *a,char *raiz, TIM *imo, int t);
 TARVBM* TARVBM_divisao(TARVBM *x, int i, TARVBM* y, char *noY, int t);
-TARVBM* TARVBM_remover(TARVBM* a, char *nomeNo, TIM *imo, int t);
-TARVBM* TARVBM_remove_3a(TARVBM *a, TIM * imo, int i, int t);
+int TARVBM_retira(long int idAlvo, int t);
+TARVBM* TARVBM_remover(TARVBM* a, char *nomeNo, long int idAlvo, int t);
 TARVBM *TARVBM_carrega(char *arquivo, int t);
 int TARVBM_salva(TARVBM *a, char *arquivo, int t);
 char* TARVBM_geraNomeNo();
@@ -40,4 +41,4 @@ int pega_ultimo_no();
 int status_imovel(TIM *imo);//retorna 1 se está a venda, 2 se for alugado e 0 se for indefinido
 void mostra_arquivo_imoveis(char *arq);
 void libera_nos_divisao(TARVBM *x, TARVBM *y, TARVBM *z, char *noY, char *noZ, int t);
-#endif 
+#endif

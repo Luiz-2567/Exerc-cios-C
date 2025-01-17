@@ -21,4 +21,24 @@ void imoveis_da_long(float lon, int t);
 void imoveis_da_long0(char *raiz, float lon, int t, FILE *fp);
 void imoveis_da_rua(char *rua, int t);
 void imoveis_da_rua0(char *raiz, char *rua, int t, FILE *fp);
- #endif 
+void imoveis_de_bairro(char *bairro, int t);
+void imoveis_de_bairro0(char *raiz, char *bairro, int t, FILE *fp);
+void imoveis_de_um_tipo(char *tipo, int t);
+void imoveis_de_um_tipo0(char *raiz, char *tipo, int t, FILE *fp);
+void imoveis_de_uma_metragem(float metragem, int t);
+void imoveis_de_uma_metragem0(char *raiz, float metragem, int t, FILE *fp);
+int inserir_novo_imovel(int t);
+
+//Interface
+
+void limpa_tela(void);
+void interface();
+int pega_escolha();
+int pega_grau();
+void teste_leitura();
+TIM* pega_imo_no_arquivo(int pos);
+void switch_escolha(int escolha, int t);
+int verifica_arquivo_salvo(int *t);
+void continuidade(int t);
+
+ #endif

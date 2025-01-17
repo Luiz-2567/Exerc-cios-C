@@ -35,7 +35,7 @@ TARVBM* TARVBM_libera_no(TARVBM *a, int t){
 	free(a->chave);
 	if(a->filho){
 		for(i = 0; i < 2*t; i++)
-			if(a->filho[i])		
+			if(a->filho[i])
 				free(a->filho[i]);
 			free(a->filho);
 	}
@@ -45,38 +45,66 @@ TARVBM* TARVBM_libera_no(TARVBM *a, int t){
 				free(a->imovel[i]);
 		free(a->imovel);
 	}
-	a->prox = NULL;
-	free(a);
+	if(a->prox)
+		free(a->prox);
+    free(a);
 	return NULL;
 }
 
+void TARVBM_gera_arvore(int t){
+	FILE *fp = fopen("TC_EDA_limpo.csv", "r");
+	if(!fp){
+        perror("!Erro ao abrir o arquivo!");
+        exit(1);
+	}
+	char c;
+	char buffer[MAX_TAM_LINHA];
+	TIM *imo;
+	int i = 0, cont;
+	do{
+		fscanf(fp, "%c", &c);
+	} while(c != '\n');
+	while (i < 199) {
+	    fgets(buffer, sizeof(buffer), fp);
+        buffer[strcspn(buffer, "\n")] = '\0';
+        imo = TIM_lineToTIM(buffer);
+        printf("\n\n\nInserindo %d: %ld...", i + 1,  imo->id);
+        cont = TARVBM_insere(imo, t);
+        if(cont == 0)
+        	printf("\n\nFalha ao inserir imóvel %d chave %ld, imóvel ja foi salvo!\n\n", i + 1, imo->id);
+        free(imo);
+        i++;
+	}
+	fclose(fp);
+}
+
 TIM* TARVBM_busca_id(char* raiz, long int idAlvo, int t){
-	TARVBM *a = TARVBM_carrega(raiz, 4);
+	TARVBM *a = TARVBM_carrega(raiz, t);
 	printf("-> Buscando no no: %s", raiz);
 	if(!a) return NULL;
 	if(a->nchaves < 1){
-		TARVBM_libera_no(a, 4);
+		TARVBM_libera_no(a, t);
 		return NULL;
 	}
 	char *aux = TARVBM_alocaFilho();
 	int i = 0;
-	while((a->chave[i] < idAlvo) && (i < a->nchaves))
+	while((i < a->nchaves) && (a->chave[i] <  idAlvo))
 		i++;
 	if(a->folha){
-		if(i >= a->nchaves){
+		if((i < a->nchaves) && (a->chave[i] == idAlvo)){
+			TIM *temp = TIM_copia(a->imovel[i]);
 			a = TARVBM_libera_no(a, t);
-			return NULL;
-		}
-		TIM *temp = TIM_copia(a->imovel[i]);
-		a = TARVBM_libera_no(a, t);
-		if(temp->id == idAlvo)
 			return temp;
+		}
+		a = TARVBM_libera_no(a, t);
 		return NULL;
 	}
 	if(a->chave[i] == idAlvo) i++;
 	strcpy(aux, a->filho[i]);
 	a = TARVBM_libera_no(a, t);
-	return TARVBM_busca_id(aux, idAlvo, t);
+	TIM *resp = TARVBM_busca_id(aux, idAlvo, t);
+	free(aux);
+	return resp;
 }
 
 int TARVBM_salva(TARVBM *a, char *arquivo, int t){
@@ -101,12 +129,7 @@ int TARVBM_salva(TARVBM *a, char *arquivo, int t){
     }
     else{
        for(i = 0; i < a->nchaves + 1; i++){
-       	int tam = sizeof(a->filho[i]);
-       	int completar = MAX_TAM_ARQ - tam;
-      	 fwrite(a->filho[i], sizeof(char) * tam, 1, fp);
-      	 char aux = '\0';
-      	 for(int j = 0; j < completar; j++)
-      	 	fwrite(&aux, sizeof(char), 1, fp);
+      	 fwrite(a->filho[i], sizeof(char),MAX_TAM_ARQ, fp);
        }
     }
 	if(a->folha){
@@ -123,11 +146,8 @@ TARVBM* TARVBM_carrega(char *arquivo, int t) {
     FILE* fp = fopen(arquivo, "rb+");
     int i, controle;
     char aux;
-    if (!fp) {
-        if (!fp) {
-            return NULL;
-        }
-    }
+    if (!fp)
+		return NULL;
     TARVBM *a = TARVBM_aloca(t);
     controle = fread(&a->nchaves, sizeof(int), 1, fp);
     if(controle < 1){
@@ -150,7 +170,7 @@ TARVBM* TARVBM_carrega(char *arquivo, int t) {
         	fread(a->prox, sizeof(char) * MAX_TAM_ARQ, 1, fp);
         }
         a->filho = NULL;
-    } 
+    }
     else{
     	for(i = 0; i < a->nchaves + 1; i++){
     		a->filho[i] = TARVBM_alocaFilho();
@@ -179,11 +199,12 @@ TARVBM* TARVBM_carrega(char *arquivo, int t) {
 }
 
 int TARVBM_insere(TIM *imo, int t){
-	return TARVBM_insere0(TARVBM_pegaRaiz(), t, imo);
+    return TARVBM_insere0(TARVBM_pegaRaiz(), t, imo);
 }
 
 int TARVBM_insere0(char *raiz, int t, TIM *imo){
 	if(TARVBM_busca_id(raiz, imo->id, t)) return 0;
+	printf("Fim busca\n INSERÇÃO: ");
 	TARVBM *a = TARVBM_carrega(raiz, t);
 	if(!a){
 		a = TARVBM_aloca(t);
@@ -193,6 +214,7 @@ int TARVBM_insere0(char *raiz, int t, TIM *imo){
 		a->nchaves++;
 		TARVBM_salva(a, raiz, t);
 		TARVBM_atualizaRaiz(raiz);
+		free(raiz);
 		return 1;
 	}
 	if(a->nchaves == 2*t-1){
@@ -241,7 +263,7 @@ TARVBM* TARVBM_insereNCompleto(TARVBM *a,char *raiz, TIM *imo, int t){
 		a->imovel[i + 1] = imo;
 		a->nchaves++;
 		TARVBM_salva(a, raiz, t);
-		return a;
+        return a;
 	}
 	while((i >= 0) && (imo->id < a->chave[i]))
 		i--;
@@ -253,6 +275,8 @@ TARVBM* TARVBM_insereNCompleto(TARVBM *a,char *raiz, TIM *imo, int t){
 	if(x->nchaves == 2*t-1){
 		printf(" Dividiu %s", noX);
 		a = TARVBM_divisao(a, i + 1, x, a->filho[i], t);
+		if(imo->id == 2692386459)
+			mostra_no(a);
 		if(imo->id > a->chave[i]) i++;
 	}
 	printf(" -> %s", a->filho[i]);
@@ -313,7 +337,7 @@ TARVBM* TARVBM_divisao(TARVBM *x, int i, TARVBM* y, char *noY, int t){
 		 	exit(1);
 		 }
 	    strcpy(y->prox, noZ);
-	}	
+	}
 	y->nchaves = t-1;
 	if(!x->filho[x->nchaves + 1]){
 		x->filho[x->nchaves + 1] = TARVBM_alocaFilho();
@@ -356,91 +380,250 @@ TARVBM* TARVBM_divisao(TARVBM *x, int i, TARVBM* y, char *noY, int t){
 	return x;
 }
 
-TARVBM* TARVBM_remover(TARVBM* a, char *nomeNo, TIM *imo, int t){
-	if(!a) return a;
-	int i;
-	for(i = 0; i < a->nchaves && a->chave[i] < imo->id; i++);
-	if((i < a->nchaves) && (imo->id == a->chave[i]) && (a->folha)){
-	   printf("\nCASO 1\n");
-	   int j;
-	   for(j=i; j<a->nchaves-1;j++) a->chave[j] = a->chave[j+1];
-	   a->nchaves--;
-		if(!a->nchaves){
-			a = TARVBM_libera_no(a, t);
-			remove(nomeNo);
-			return NULL;
-		}
-		return a;      
+int TARVBM_retira(long int idAlvo, int t){
+    TARVBM *a = TARVBM_carrega(TARVBM_pegaRaiz(), t);
+    if(!a || !TARVBM_busca_id(TARVBM_pegaRaiz(), idAlvo, t)) return 0;
+    char *raiz = TARVBM_pegaRaiz();
+    a = TARVBM_remover(a, raiz, idAlvo, t);
+    if(!a)
+        limpa_arquivos();
+    else{
+    	TARVBM_salva(a, raiz, t);
+    	TARVBM_libera_no(a ,t);
     }
-    if((i < a->nchaves) && (imo->id == a->chave[i]) && (a->folha)){
-    	a = TARVBM_remove_3a(a, imo, i, t);
-    	TARVBM_salva(a, nomeNo, t);
-    	return a;
-	}
-	return a;
+    TARVBM_atualizaRaiz(raiz);
+    free(raiz);
+    return 1;
 }
 
-TARVBM* TARVBM_remove_3a(TARVBM *a, TIM * imo, int i, int t){
-	  TARVBM *y = TARVBM_carrega(a->filho[i], t), *z = NULL, *k;
-	if((i < a->nchaves) && (y->nchaves >=t)){ //CASO 3A
-		z = TARVBM_carrega(a->filho[i+1], t);
-		if(!y->folha){
-			y->chave[t-1] = a->chave[i];
-			a->chave[i] = z->chave[0];
+TARVBM* TARVBM_remover(TARVBM *a, char *raiz, long int idAlvo, int t){
+	if(!a) return a;
+	int i, j;
+	for(i = 0; i < a->nchaves && a->chave[i] < idAlvo; i++);
+	if((i < a->nchaves) && (idAlvo == a->chave[i]) && (a->folha)){
+	   printf("\nCASO 1\n");
+	   int j;
+	   free(a->imovel[i]);
+        for(j=i; j<a->nchaves-1;j++){
+            a->chave[j] = a->chave[j+1];
+            a->imovel[j] = a->imovel[j+1];
+        }
+        a->imovel[j] = NULL;
+        a->nchaves--;
+		if(!a->nchaves){
+			a = TARVBM_libera_no(a, t);
+			remove(raiz);
+			return NULL;
 		}
-		else{ 
-			a->chave[i] = z->chave[0] + 1;
-			y->chave[t-1] = z->chave[0];
-		}
-		y->nchaves++;
-		int j;
-		for(j=0; j < z->nchaves-1; j++)  //ajustar chaves de z
-        	z->chave[j] = z->chave[j+1];
-        y->filho[y->nchaves] = z->filho[0]; //enviar ponteiro menor de z para o novo elemento em y
-        for(j=0; j < z->nchaves; j++)       //ajustar filhos de z
-        	z->filho[j] = z->filho[j+1];
-		z->nchaves--;
-		k = TARVBM_carrega(a->filho[i], t);
-		k = TARVBM_remover(k, a->filho[i],imo, t);
-		if(k){
-			TARVBM_salva(k, a->filho[i], t);
-			TARVBM_libera_no(k, t);
-		}
-		TARVBM_salva(z, a->filho[i+1], t);
-		TARVBM_libera_no(z, t);
-        return a;
-    }
-	if((i > 0) && (!z) && (y->nchaves >= t)){ //CASO 3A
-		printf("\nCASO 3A: i igual a nchaves\n");
-		z = TARVBM_carrega(a->filho[i-1], t);
-		int j;
-		for(j = y->nchaves; j>0; j--)               //encaixar lugar da nova chave
-			y->chave[j] = y->chave[j-1];
-		for(j = y->nchaves+1; j>0; j--) //encaixar lugar dos filhos da nova chave
-			y->filho[j] = y->filho[j-1];
-
-		if(!y->folha){
-			y->chave[0] = a->chave[i-1];    //dar a y a chave i da arv
-			a->chave[i-1] = z->chave[z->nchaves - 1];   //dar a arv uma chave de z
-		}
-		else{ 
-			a->chave[i-1] = z->chave[z->nchaves - 1];
-			y->chave[0] = z->chave[z->nchaves-1];
-		}
-		y->nchaves++;
-      //enviar ponteiro de z para o novo elemento em y
-		y->filho[0] = z->filho[z->nchaves];
-		z->nchaves--;
-		k = TARVBM_carrega(a->filho[i], t);
-		k = TARVBM_remover(y, a->filho[i], imo, t);
-		if(k){
-			TARVBM_salva(k, a->filho[i], t);
-			TARVBM_libera_no(k, t);
-		}
-		TARVBM_salva(z, a->filho[i - 1], t);
-		TARVBM_libera_no(z, t);
 		return a;
     }
+    if((i < a->nchaves) && (idAlvo == a->chave[i])) i++;
+    TARVBM *y = TARVBM_carrega(a->filho[i], t), *z = NULL;
+    if(y->nchaves == t-1){
+		z = TARVBM_carrega(a->filho[i+1], t);
+        if((i < a->nchaves) && (z->nchaves) >= t){
+            printf("\nCASO 3A: i menor que nchaves\n");
+            if(!y->folha){
+                y->chave[t-1] = a->chave[i];   //dar a y a chave i da arv
+                a->chave[i] = z->chave[0];     //dar a arv uma chave de z
+            }
+            else{
+                a->chave[i] = z->chave[0] + 1;
+                y->imovel[t-1] = TIM_copia(z->imovel[0]);
+                y->chave[t-1] = z->chave[0];
+            }
+            y->nchaves++;
+            mostra_no(y);
+            if(!z->folha){
+	            for(j=0; j < z->nchaves-1; j++){  //ajustar chaves de z
+	                z->chave[j] = z->chave[j+1];
+	            }
+            }
+            else{
+            	free(z->imovel[0]);
+            	for(j=0; j < z->nchaves-1; j++){  //ajustar chaves de z
+            		z->imovel[j] = z->imovel[j + 1];
+	                z->chave[j] = z->chave[j+1];
+	            }
+	            z->imovel[z->nchaves - 1] = NULL;
+            }
+            if(!y->folha){
+            	y->filho[y->nchaves] = TARVBM_alocaFilho();
+            	strcpy(y->filho[y->nchaves], z->filho[0]); //enviar ponteiro menor de z para o novo elemento em y
+	        	for(j=0; j < z->nchaves; j++){     //ajustar filhos de z
+	            	free(z->filho[j]);
+	            	z->filho[j] = TARVBM_alocaFilho();
+	                strcpy(z->filho[j], z->filho[j+1]);
+	            }
+			}
+            //possivel correcao no filho[j]
+            z->nchaves--;
+            TARVBM_salva(z, a->filho[i+1], t);
+            TARVBM_libera_no(z, t);
+            y = TARVBM_remover(y, a->filho[i], idAlvo, t);
+            TARVBM_salva(y, a->filho[i], t);
+            TARVBM_libera_no(y, t);
+            return a;
+        }
+        TARVBM_libera_no(z, t);
+        z = TARVBM_carrega(a->filho[i-1], t);
+        if((i > 0) && (z->nchaves >= t)){      //CASO 3A
+            printf("\nCASO 3A: i igual a nchaves\n");
+            int j;
+            for(j = y->nchaves; j>0; j--)               //encaixar lugar da nova chave
+                y->chave[j] = y->chave[j-1];
+            if(!y->folha){
+             	y->filho[y->nchaves+1] = TARVBM_alocaFilho();
+	            for(j = y->nchaves+1; j>0; j--){//encaixar lugar dos filhos da nova chave
+	               strcpy (y->filho[j], y->filho[j-1]);
+	            }
+	            y->chave[0] = a->chave[i-1];    //dar a y a chave i da arv
+	            a->chave[i-1] = z->chave[z->nchaves - 1];   //dar a arv uma chave de z
+	            free(y->filho[0]);
+            	y->filho[0] = TARVBM_alocaFilho();
+            	strcpy(y->filho[0], z->filho[z->nchaves]);
+            }
+            else{
+                a->chave[i-1] = z->chave[z->nchaves - 1];
+                y->chave[0] = z->chave[z->nchaves-1];
+               free(y->imovel[0]);
+               y->imovel[0] = TIM_copia(z->imovel[z->nchaves-1]);
+            }
+            y->nchaves++;
+      //enviar ponteiro de z para o novo elemento em y
+            z->nchaves--;
+            TARVBM_salva(z, a->filho[i-1], t);
+            y = TARVBM_remover(y, a->filho[i], idAlvo, t);
+			TARVBM_salva(y, a->filho[i-1], t);
+            return a;
+		}
+        z = NULL;
+        if(!z){ //CASO 3B
+        	z = TARVBM_carrega(a->filho[i+1], t);
+            if(i < a->nchaves && z->nchaves == t-1){
+                printf("\nCASO 3B: i menor que nchaves\n");
+                if(!y->folha){
+                    y->chave[t-1] = a->chave[i];//pegar chave [i] e coloca ao final de filho[i]
+                    y->nchaves++;
+                }
+                int j = 0;
+                while(j < t-1){
+                    if(!y->folha){
+                    	y->chave[t+j] = z->chave[j];
+                    	free(y->prox);
+                    	y->prox = TARVBM_alocaFilho();
+                    	strcpy(y->prox, z->prox);
+                    }
+                    else{
+                        y->chave[t+j-1] = z->chave[j];
+                        if(y->imovel[t+j-1])
+                        	free(y->imovel[t+j-1]);
+                        y->imovel[t+j-1] = TIM_copia(z->imovel[j]);
+                    }
+                    y->nchaves++;
+                    j++;
+                    if(!y->folha){
+                        for(j=0; j<t; j++){
+                            if(y->filho[j+t])
+                                free(y->filho[j+t]);
+                            y->filho[j+t] = TARVBM_alocaFilho();
+                            strcpy(y->filho[t+j], z->filho[j]);
+                            z->filho[j] = NULL; //ultima revisao: 04/2020
+                        }
+                    //TARVBM_libera(z); 07/2024
+                    }
+                    TARVBM_salva(z, a->filho[i+1], t);
+                    TARVBM_libera_no(z, t);
+                    TARVBM_salva(y, a->filho[i], t);
+                    TARVBM_libera_no(y, t); // 07/2024
+                    /*        
+                    
+                    			parei aqui
+										                
+										                
+										                	*/
+                    for(j=i; j < a->nchaves-1; j++){ //limpar referências de i
+                        a->chave[j] = a->chave[j+1];
+                        a->filho[j+1] = a->filho[j+2];
+                    }
+                    free(a->filho[a->nchaves]);
+                    a->filho[a->nchaves] = NULL;
+                    a->nchaves--;
+                    if(!a->nchaves){ //ultima revisao: 04/2020
+                        remove(raiz);
+                        free(raiz);
+                        raiz = TARVBM_alocaFilho();
+                        strcpy(raiz, a->filho[i]);
+                        a->filho[0] = NULL;
+                        TARVBM_libera_no(a,t);
+                        a = TARVBM_carrega(raiz, t);
+                    }
+                    a = TARVBM_remover(a, raiz, idAlvo, t);
+                    TARVBM_salva(a, raiz, t);
+                    return a;
+                }
+            }
+            z = TARVBM_carrega(a->filho[i -1], t);
+            if((i > 0) && (z->nchaves == t-1)){
+                printf("\nCASO 3B: i igual a nchaves\n");
+
+                if(!y->folha){
+                if(i == a->nchaves){
+                    z->chave[t-1] = a->chave[i-1]; //pegar chave[i] e poe ao final de filho[i-1]
+                }else{
+                    z->chave[t-1] = a->chave[i];   //pegar chave [i] e poe ao final de filho[i-1]
+                }
+                z->nchaves++;
+            }
+                int j = 0;
+                while(j < t-1){
+                    if(!y->folha) z->chave[t+j] = y->chave[j];
+                    else z->chave[t+j-1] = y->chave[j];
+                    z->nchaves++;
+                    j++;
+                }
+                free(z->prox);
+                z->prox = TARVBM_alocaFilho();
+                strcpy(z->prox, y->prox);
+                if(!z->folha){
+                    for(j=0; j<t; j++){
+                        if(z->filho[j+t])
+                            free(z->filho[j+t]);
+                        z->filho[j+t] = TARVBM_alocaFilho();
+                        strcpy(z->filho[t+j], y->filho[j]);
+                        free(y->filho[j]);
+                        y->filho[j] = NULL; //ultima revisao: 04/2020
+                    }
+                  //TARVBM_libera(y); 07/2024
+                }
+                remove(a->filho[i]);
+                TARVBM_libera_no(y, t);
+                free(a->filho[a->nchaves]);
+                a->filho[a->nchaves] = NULL;
+                a->nchaves--;
+                if(!a->nchaves){//ultima revisao: 04/2020
+                    remove(raiz);
+                    free(raiz);
+                    raiz = TARVBM_alocaFilho();
+                    strcpy(raiz, a->filho[0]);
+                    TARVBM_libera_no(a,t);
+                    a = TARVBM_carrega(raiz, t);
+                    a = TARVBM_remover(a, raiz, idAlvo, t);
+                    TARVBM_salva(a, raiz, t);
+                }
+                else{
+                    i--;
+                    a = TARVBM_carrega(a->filho[i], 0);
+                    a  = TARVBM_remover(y, a->filho[i], idAlvo, t);
+                   TARVBM_salva(a, a->filho[i], t);
+                }
+                return a;
+            }
+        }
+    }
+    y  = TARVBM_remover(y, a->filho[i], idAlvo, t);
+	TARVBM_salva(y, a->filho[i], t);
+    return a;
 }
 
 void TARVBM_atualizaRaiz(char *no){
@@ -479,6 +662,7 @@ char* TARVBM_noMaisAEsq(char *raiz, int t){
 	}
 	if(x->folha)
 		return raiz;
+    printf("-> %s ", raiz);
 	free(raiz);
 	char *c = TARVBM_alocaFilho();
 	strcpy(c, x->filho[0]);
@@ -598,10 +782,13 @@ void limpa_arquivos(){
 	remove("imoveis_lat.bin");
 	remove("imoveis_long.bin");
 	remove("imoveis_rua.bin");
+	remove("imoveis_bairro.bin");
+	remove("imoveis_tipo.bin");
+	remove("imoveis_metragem.bin");
 }
 
 char* concat_nome_no(int num){
-	char *nomeArq = (char*)calloc(MAX_TAM_ARQ, sizeof(char));
+	char *nomeArq = TARVBM_alocaFilho();
 	char *nums;
 	if(!nomeArq){
 		free(nomeArq);
